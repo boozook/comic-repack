@@ -11,7 +11,10 @@ struct Logger<const COLORS: bool> {
 }
 
 impl<const COLORS: bool> Logger<COLORS> {
-	fn new(output: Option<MultiProgress>, extra_verbose: bool) -> Self { Self { output, extra_verbose } }
+	const fn new(output: Option<MultiProgress>, extra_verbose: bool) -> Self {
+		Self { output,
+		       extra_verbose }
+	}
 
 	fn is_enabled(&self, metadata: &Metadata) -> bool { metadata.level() <= Level::Trace }
 
@@ -39,7 +42,9 @@ impl log::Log for Logger<true> {
 		}
 
 		let path = {
-			let line = record.line().map(|l| format!(":{l}")).unwrap_or(String::with_capacity(0));
+			let line = record.line()
+			                 .map(|l| format!(":{l}"))
+			                 .unwrap_or(String::with_capacity(0));
 			if this_crate {
 				target = target.replacen(std::env!("CARGO_CRATE_NAME"), std::env!("CARGO_PKG_NAME"), 1)
 				               .into();
@@ -114,7 +119,9 @@ impl log::Log for Logger<false> {
 		}
 
 		let path = {
-			let line = record.line().map(|l| format!(":{l}")).unwrap_or(String::with_capacity(0));
+			let line = record.line()
+			                 .map(|l| format!(":{l}"))
+			                 .unwrap_or(String::with_capacity(0));
 			if this_crate {
 				target = target.replacen(std::env!("CARGO_CRATE_NAME"), std::env!("CARGO_PKG_NAME"), 1)
 				               .into();
@@ -125,7 +132,15 @@ impl log::Log for Logger<false> {
 		let level: Cow<str> = match record.level() {
 			Level::Info => "".into(),
 			Level::Warn | Level::Error => record.level().as_str().into(),
-			_ => record.level().as_str().chars().next().unwrap_or_default().to_string().into(),
+			_ => {
+				record.level()
+				      .as_str()
+				      .chars()
+				      .next()
+				      .unwrap_or_default()
+				      .to_string()
+				      .into()
+			},
 		};
 
 		let render = match record.level() {

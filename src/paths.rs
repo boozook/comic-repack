@@ -7,14 +7,17 @@ use crate::cli::FormatFileExt;
 
 
 pub async fn validate_and_unglob(mut paths: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-	let unexisting = paths.drain_filter(|p| !p.try_exists().ok().unwrap_or(false));
+	let unexisting = paths.extract_if(|p| !p.try_exists().ok().unwrap_or(false));
 	let mut resolved = Vec::new();
 	for query in unexisting {
 		let current = resolved.len();
 		resolved.extend(unglob(query.to_string_lossy()).await?);
 
 		if current == resolved.len() {
-			warn!("Path or glob pattern '{}' is wrong and will be ignored", query.display());
+			warn!(
+			      "Path or glob pattern '{}' is wrong and will be ignored",
+			      query.display()
+			);
 		}
 	}
 	paths.append(&mut resolved);
@@ -27,7 +30,8 @@ pub async fn validate_and_unglob(mut paths: Vec<PathBuf>) -> Result<Vec<PathBuf>
 	Ok(paths)
 }
 
-pub async fn unglob<S: AsRef<str>>(pattern: S) -> Result<impl Iterator<Item = PathBuf>, Box<dyn std::error::Error>> {
+pub async fn unglob<S: AsRef<str>>(pattern: S)
+                                   -> Result<impl Iterator<Item = PathBuf>, Box<dyn std::error::Error>> {
 	use glob::glob;
 	Ok(glob(pattern.as_ref())?.filter_map(|res| res.map_err(|err| error!("{err}")).ok()))
 }
@@ -79,7 +83,8 @@ impl<I, S: AsRef<OsStr>> From<(I, S)> for Entry<I, S> {
 }
 
 
-pub fn filter_entries<S: AsRef<OsStr>>(entries: impl Iterator<Item = S> + Send) -> impl Iterator<Item = S> + Send {
+pub fn filter_entries<S: AsRef<OsStr>>(entries: impl Iterator<Item = S> + Send)
+                                       -> impl Iterator<Item = S> + Send {
 	entries.filter(|entry| {
 		       let s = entry.as_ref().to_string_lossy();
 		       let uri = Path::new(&entry);
@@ -107,7 +112,8 @@ pub fn filter_entries<S: AsRef<OsStr>>(entries: impl Iterator<Item = S> + Send) 
 /// - find the same second time => this is exactly root dir.
 /// - filter out paths that are exactly equal root dir.
 /// That's doesn't work properly if root dir is first item of given iterator.
-pub fn remove_root_entry<S: AsRef<OsStr>>(entries: impl Iterator<Item = S> + Send) -> impl Iterator<Item = S> + Send {
+pub fn remove_root_entry<S: AsRef<OsStr>>(entries: impl Iterator<Item = S> + Send)
+                                          -> impl Iterator<Item = S> + Send {
 	let mut root: Option<std::ffi::OsString> = None;
 	let mut possible: Option<std::ffi::OsString> = None;
 

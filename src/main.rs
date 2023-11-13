@@ -1,4 +1,4 @@
-#![feature(drain_filter)]
+#![feature(extract_if)]
 #![feature(never_type)]
 
 #[macro_use]
@@ -153,9 +153,11 @@ impl ArchiveWriter {
 
 		let output_file = Self::open_file(path, force).await?;
 		let mut writer = SevenZWriter::new(output_file.into_std().await)?;
-		writer.set_content_methods(vec![SevenZMethodConfiguration::new(SevenZMethod::LZMA2).with_options(
-			MethodOptions::LZMA2(lzma::LZMA2Options::with_preset(9)),
-		)]);
+		writer.set_content_methods(vec![
+			SevenZMethodConfiguration::new(SevenZMethod::LZMA2).with_options(MethodOptions::LZMA2(
+				lzma::LZMA2Options::with_preset(9),
+			)),
+		]);
 
 		Ok(Self::Sz(writer))
 	}
@@ -166,7 +168,8 @@ impl ArchiveWriter {
 		match self {
 			Self::Zip(writer) => {
 				let compression = async_zip::Compression::Deflate;
-				let builder = ZipEntryBuilder::new(name.into(), compression).deflate_option(async_zip::DeflateOption::Maximum);
+				let builder =
+					ZipEntryBuilder::new(name.into(), compression).deflate_option(async_zip::DeflateOption::Maximum);
 				writer.write_entry_whole(builder, data).await?;
 			},
 
@@ -206,7 +209,10 @@ struct ConversionResult {
 	dst: std::fs::Metadata,
 }
 
-async fn convert_all(mut inout: ProcessInOut, cfg: &Config, multibar: Option<MultiProgress>) -> Result<ConversionResult, Error> {
+async fn convert_all(mut inout: ProcessInOut,
+                     cfg: &Config,
+                     multibar: Option<MultiProgress>)
+                     -> Result<ConversionResult, Error> {
 	let jobs = cfg.jobs;
 	trace!("jobs per archive: {jobs}");
 	let source = inout.reader.path().to_owned();
@@ -215,7 +221,12 @@ async fn convert_all(mut inout: ProcessInOut, cfg: &Config, multibar: Option<Mul
 	let bar = multibar.map(|mb| {
 		                  let len = inout.total_entries;
 		                  let pos = len - inout.entries.len();
-		                  let text = inout.reader.path().file_name().unwrap().to_string_lossy().to_string();
+		                  let text = inout.reader
+		                                  .path()
+		                                  .file_name()
+		                                  .unwrap()
+		                                  .to_string_lossy()
+		                                  .to_string();
 		                  cli::sub_progress_bar(&mb, len, pos, text)
 	                  });
 
@@ -270,7 +281,10 @@ async fn convert_all(mut inout: ProcessInOut, cfg: &Config, multibar: Option<Mul
 		                                       }
 	                                       })
 	                                       .await;
-	inout.writer.close().await.map(|dst| ConversionResult { src: source, dst })
+	inout.writer
+	     .close()
+	     .await
+	     .map(|dst| ConversionResult { src: source, dst })
 }
 
 
@@ -284,7 +298,10 @@ struct ProcessInOut {
 	writer: ArchiveWriter,
 }
 
-async fn open_inout(source: impl AsRef<Path>, outdir: impl AsRef<Path>, cfg: &Config) -> Result<ProcessInOut, Error> {
+async fn open_inout(source: impl AsRef<Path>,
+                    outdir: impl AsRef<Path>,
+                    cfg: &Config)
+                    -> Result<ProcessInOut, Error> {
 	use cli::ArchiveType::*;
 	let (reader, entries, total) = archive_reader(&source).await?;
 	let output = paths::output_archive_path(&source, &outdir, cfg.archive);
@@ -319,7 +336,10 @@ async fn archive_reader(path: impl AsRef<Path>) -> Result<(Archive, Vec<paths::S
 }
 
 
-async fn transcode<S: AsRef<str> + Debug>(cfg: Config, data: Vec<u8>, name: S) -> Result<(String, Vec<u8>), image::ImageError> {
+async fn transcode<S: AsRef<str> + Debug>(cfg: Config,
+                                          data: Vec<u8>,
+                                          name: S)
+                                          -> Result<(String, Vec<u8>), image::ImageError> {
 	let cfg = cfg.clone();
 	let uri = Path::new(name.as_ref());
 	let filename = uri.file_name().expect("filename").to_owned();
@@ -350,8 +370,14 @@ async fn transcode<S: AsRef<str> + Debug>(cfg: Config, data: Vec<u8>, name: S) -
 		return Ok((filename.to_string_lossy().to_string(), data));
 	}
 
-	if matches!(format, Some(image::ImageFormat::WebP) | Some(image::ImageFormat::Avif)) {
-		warn!("SKIP with reason: src is already good format: {:?}", format.as_ref().unwrap());
+	if matches!(
+	            format,
+	            Some(image::ImageFormat::WebP) | Some(image::ImageFormat::Avif)
+	) {
+		warn!(
+		      "SKIP with reason: src is already good format: {:?}",
+		      format.as_ref().unwrap()
+		);
 		return Ok((filename.to_string_lossy().to_string(), data));
 	}
 
@@ -416,13 +442,22 @@ async fn transcode<S: AsRef<str> + Debug>(cfg: Config, data: Vec<u8>, name: S) -
 		}
 
 
-		let filename = Path::new(&filename).with_extension(cfg.format.ext()).display().to_string();
-		trace!("transcoded image: {filename}, len: {} ({:?})", data.len(), cfg.format);
+		let filename = Path::new(&filename).with_extension(cfg.format.ext())
+		                                   .display()
+		                                   .to_string();
+		trace!(
+		       "transcoded image: {filename}, len: {} ({:?})",
+		       data.len(),
+		       cfg.format
+		);
 
 
 		Ok((filename, output))
 	} else {
-		warn!("Unable to decode as image: {}, so just copying as-is.", uri.display());
+		warn!(
+		      "Unable to decode as image: {}, so just copying as-is.",
+		      uri.display()
+		);
 		Ok((name.as_ref().to_string(), data))
 	}
 }

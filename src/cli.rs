@@ -44,8 +44,9 @@ fn parse_image_output_format(s: &str) -> Result<image::ImageOutputFormat, String
 		"qoi" => Ok(Qoi),
 		"tiff" => Ok(Tiff),
 		other => {
-			if let Some(format) = image::ImageFormat::from_extension(other).map(ImageOutputFormat::from)
-			                                                               .filter(|f| !matches!(f, ImageOutputFormat::Unsupported(_)))
+			if let Some(format) =
+				image::ImageFormat::from_extension(other).map(ImageOutputFormat::from)
+				                                         .filter(|f| !matches!(f, ImageOutputFormat::Unsupported(_)))
 			{
 				Ok(format)
 			} else {
@@ -151,7 +152,11 @@ pub fn parse() -> Args { Args::parse() }
 
 // --- progress ---
 
-pub fn sub_progress_bar(multibar: &MultiProgress, len: usize, pos: usize, msg: impl Into<Cow<'static, str>>) -> ProgressBar {
+pub fn sub_progress_bar(multibar: &MultiProgress,
+                        len: usize,
+                        pos: usize,
+                        msg: impl Into<Cow<'static, str>>)
+                        -> ProgressBar {
 	let template = format!("{{prefix:.bold}} [{{pos:>3}}/{{len:3}}] {{msg:<}} {{wide_bar:.green/.white.dim}} [{{elapsed}}] ({{eta}})");
 	let style = ProgressStyle::default_bar().template(&template)
 	                                        .unwrap()
@@ -165,7 +170,8 @@ pub fn sub_progress_bar(multibar: &MultiProgress, len: usize, pos: usize, msg: i
 
 pub fn main_progress_bar(multibar: &MultiProgress) -> Result<Arc<ProgressBar>, Box<dyn std::error::Error>> {
 	let template = "{prefix:.bold.dim} [{pos}/{len}] {wide_bar:.cyan/.white.dim} {msg} [{elapsed}] ({eta})";
-	let style = ProgressStyle::default_bar().template(template)?.progress_chars("==-");
+	let style = ProgressStyle::default_bar().template(template)?
+	                                        .progress_chars("==-");
 	let bar = Arc::new(multibar.add(ProgressBar::new(0).with_style(style).with_tab_width(2)));
 	bar.set_prefix("files:");
 	Ok(bar)
